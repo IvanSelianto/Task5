@@ -20,7 +20,6 @@
             <fieldset>
             <input type="text" path="name" placeholder="Search..." id="name" autofocus="true" name="search">
             <button type="submit" name="action" value="search" id="search" class="button">Search</button>
-            <br>
             <button type="submit" id="searchResult" class="button">Search Result: ${gameId.name}</button>
             </fieldset>
         </div>
