@@ -1,0 +1,117 @@
+'use strict';
+
+var usernamePage = document.querySelector('#username-page');
+var chatPage = document.querySelector('#chat-page');
+var usernameForm = document.querySelector('#usernameForm');
+var messageForm = document.querySelector('#messageForm');
+var messageArea = document.querySelector('#messageArea');
+var connectingElement = document.querySelector('.connecting');
+var messageInput = document.querySelector('#message')
+var stompClient = null;
+var username = null;
+
+function connect(event) {
+    username = document.querySelector('#name').value.trim();
+    document.getElementById("playerName").innerHTML = username;
+
+    if (username) {
+        usernamePage.classList.add('hidden');
+        chatPage.classList.remove('hidden');
+
+        var socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, onConnected, onError);
+    }
+    event.preventDefault();
+}
+
+function disconnect() {
+    stompClient.disconnect()
+
+    chatPage.classList.add('hidden');
+    stompClient.unsubscribe('/topic/public')
+}
+
+
+function onConnected() {
+    // Subscribe to the Public Topic
+    stompClient.subscribe('/topic/public', onMessageReceived);
+
+    // Tell your username to the server
+    stompClient.send("/app/chat.addUser",
+        {},
+        JSON.stringify({sender: username, type: 'JOIN'})
+    )
+
+}
+
+
+function onError(error) {
+    connectingElement.textContent = 'Could not connect to WebSocket server. Please refresh this page to try again!';
+    connectingElement.style.color = 'red';
+}
+
+
+function sendMessage(x, y, side) {
+
+
+    var playerMove = {
+        x: x,
+        y: y,
+        side: side,
+        winner: null
+    };
+    stompClient.subscribe('/topic/public', onMessageReceived);
+    stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(playerMove));
+    event.preventDefault();
+
+}
+
+
+function onMessageReceived(payload) {
+    var message = JSON.parse(payload.body);
+    putXO((message.y + ' ' + message.x), message.side)
+    if (message.winner === true) {
+        alert(message.side + " WIN!!!");
+        message.winner = false;
+        window.location.href = "/"
+
+        disconnect()
+    } else if (message.winner === false) {
+        alert(" DRAW!!!");
+        message.winner = false;
+        window.location.href = "/"
+
+        disconnect()
+
+    }
+
+
+}
+
+
+function putXO(id, side) {
+    /*
+console.log( document.getElementById(id).value + "f!!!!!!!!!!!!!!!")
+*/
+
+
+    if (!(document.getElementById(id).value === "X" || document.getElementById(id).value === "O")) {
+        document.getElementById(id).value = side;
+    }
+
+};
+
+function give(val) {
+    if (!(document.getElementById(val).value === "X" || document.getElementById(val).value === "O")) {
+        sendMessage(document.getElementById(val).getAttribute('X'), document.getElementById(val).getAttribute('Y'))
+
+    }
+    event.preventDefault()
+}
+usernameForm.addEventListener('submit', connect, true)
+/*
+messageForm.addEventListener('submit', sendMessage, true)
+*/
+
